@@ -1,5 +1,6 @@
 import argparse
 import codecs
+import heapq
 import json
 import random
 import statistics
@@ -16,6 +17,7 @@ GUESS_SAMPLE_SIZE = 5000
 USE_REAL_DICT = True
 
 LOCATION_MATCH_WEIGHT = 1
+MAX_CANDIDATE_GUESSES = 10
 
 def get_top_n(n):
     # this list is already sorted, so we can optimize a bit!
@@ -147,7 +149,7 @@ class DensitySolver():
                     print("Found: %s" % states)
                 return i + 1
             (match_at_loc, match_not_at_loc, unmatched) = self.matcher.get_results(self.solution, candidate)
-            self.guesses = matcher.get_possible_words(set(self.guesses), candidate, match_at_loc, match_not_at_loc, unmatched)
+            self.guesses = self.matcher.get_possible_words(set(self.guesses), candidate, match_at_loc, match_not_at_loc, unmatched)
 
             if self.solution not in self.guesses:
                 print("This is weird, solution %s not in guesses")
@@ -157,6 +159,24 @@ class DensitySolver():
 class RandomSolver(DensitySolver):
     def get_candidate(self):
         return random.choice(list(self.guesses))
+
+class SmartSolver(DensitySolver):
+    def get_candidate(self):
+        candidates = []
+        idx = 0
+        guess_set = set(self.guesses)
+        while True:
+            if self.densities[idx][0] in self.guesses:
+                candidate = self.densities[idx][0]
+                (match_at_loc, match_not_at_loc, unmatched) = self.matcher.get_results(self.solution, candidate)
+                possible_words = self.matcher.get_possible_words(guess_set, candidate, match_at_loc, match_not_at_loc, unmatched)
+                heapq.heappush(candidates, (len(possible_words), candidate))
+
+            idx += 1
+            if (idx >= len(self.densities)) or len(candidates) >= MAX_CANDIDATE_GUESSES:
+                break
+
+        return heapq.heappop(candidates)[1]
 
 if __name__ == "__main__":
     if sys.version_info[0] < 3:
@@ -204,7 +224,7 @@ if __name__ == "__main__":
 
     print("Scanning %d solutions" % len(solutions))
 
-    results = {0: [], 1: [], 2:[]}
+    results = defaultdict(list)
     for goal in solutions:
         match_density_solver = DensitySolver(goal, guesses, scores[0], matcher)
         results[0].append(match_density_solver.solve())
@@ -215,8 +235,11 @@ if __name__ == "__main__":
         random_solver = RandomSolver(goal, guesses, None, matcher)
         results[2].append(random_solver.solve())
 
-    for i in range(0, 3):
-        print(['match', 'winnow', 'random'][i])
+        smart_solver = SmartSolver(goal, guesses, scores[1], matcher)
+        results[3].append(smart_solver.solve())
+
+    for i in range(0, 4):
+        print(['match', 'winnow', 'random', 'smart'][i])
         print("  mean:   %f" % statistics.mean(results[i]))
         print("  median: %d" % statistics.median(results[i]))
         print("  mode:   %d" % statistics.mode(results[i]))
