@@ -10,13 +10,12 @@ from collections import defaultdict
 SOLUTION_WORDS = 3000
 GUESS_WORDS = 3000
 
-SOLUTION_SAMPLE_SIZE = 200
-GUESS_SAMPLE_SIZE = 200
+SOLUTION_SAMPLE_SIZE = 3000
+GUESS_SAMPLE_SIZE = 5000
 
 USE_REAL_DICT = True
 
-PRUNE_TOP = 10
-RESULTS_MAX = 100
+LOCATION_MATCH_WEIGHT = 1
 
 def get_top_n(n):
     # this list is already sorted, so we can optimize a bit!
@@ -98,11 +97,12 @@ class InformationDensityFinder:
         scores = defaultdict(list)
         winnow_scores = defaultdict(list)
         guess_set = set(self.guesses)
-        for solution in self.solutions:
-            print("Building ranking for %s" % solution)
+        for (idx, solution) in enumerate(self.solutions):
+            to = '\u001b[1A'
+            print("%sBuilding ranking (%d/%d)" % (to, idx, len(self.solutions)))
             for guess in self.guesses:
                 (match_at_loc, match_not_at_loc, unmatched) = Matcher.get_results(solution, guess)
-                score = len(match_at_loc) * 2 + len(match_not_at_loc)
+                score = len(match_at_loc) * LOCATION_MATCH_WEIGHT + len(match_not_at_loc)
                 scores[guess].append(score)
                 new_possibilities = self.matcher.get_possible_words(guess_set, guess, match_at_loc, match_not_at_loc, unmatched)
                 winnow_scores[guess].append(len(new_possibilities))
@@ -152,9 +152,11 @@ class DensitySolver():
             if self.solution not in self.guesses:
                 print("This is weird, solution %s not in guesses")
 
-        print("Unable to find: %s: %s" % (self.solution, states))
         return 6
 
+class RandomSolver(DensitySolver):
+    def get_candidate(self):
+        return random.choice(list(self.guesses))
 
 if __name__ == "__main__":
     if sys.version_info[0] < 3:
@@ -202,7 +204,7 @@ if __name__ == "__main__":
 
     print("Scanning %d solutions" % len(solutions))
 
-    results = {0: [], 1: []}
+    results = {0: [], 1: [], 2:[]}
     for goal in solutions:
         match_density_solver = DensitySolver(goal, guesses, scores[0], matcher)
         results[0].append(match_density_solver.solve())
@@ -210,9 +212,12 @@ if __name__ == "__main__":
         winnow_density_solver = DensitySolver(goal, guesses, scores[1], matcher)
         results[1].append(winnow_density_solver.solve())
 
-    for i in range(0, 2):
-        print(['match', 'winnow'][i])
-        print("  mean:   %d" % statistics.mean(results[i]))
+        random_solver = RandomSolver(goal, guesses, None, matcher)
+        results[2].append(random_solver.solve())
+
+    for i in range(0, 3):
+        print(['match', 'winnow', 'random'][i])
+        print("  mean:   %f" % statistics.mean(results[i]))
         print("  median: %d" % statistics.median(results[i]))
         print("  mode:   %d" % statistics.mode(results[i]))
 
