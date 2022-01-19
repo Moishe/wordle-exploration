@@ -2,22 +2,28 @@ import argparse
 import codecs
 import heapq
 import json
+from nis import match
 import random
 import statistics
 import sys
 
 from collections import defaultdict
 
+from Matcher import Matcher
+
 SOLUTION_WORDS = 3000
 GUESS_WORDS = 3000
 
 SOLUTION_SAMPLE_SIZE = 3000
-GUESS_SAMPLE_SIZE = 3000
+GUESS_SAMPLE_SIZE = 0
 
 USE_REAL_DICT = True
 
 LOCATION_MATCH_WEIGHT = 2
 MAX_CANDIDATE_GUESSES = 20
+
+HIGHLIGHT = '\u001b[37m'
+RESET = '\u001b[0m'
 
 def get_top_n(n):
     # this list is already sorted, so we can optimize a bit!
@@ -40,47 +46,6 @@ def get_real_solutions():
         words.append(codecs.decode(l.rstrip(), 'rot_13'))
 
     return words
-
-class Matcher:
-    def __init__(self, guesses):
-        self.words_with_letter = defaultdict(set)
-        self.words_with_letter_at_location = defaultdict(set)
-
-        for word in guesses:
-            for (idx, letter) in enumerate(word):
-                self.words_with_letter[letter].add(word)
-                self.words_with_letter_at_location[(idx, letter)].add(word)
-
-    @staticmethod
-    def get_results(solution, guess):
-        match_at_loc = []
-        match_not_at_loc = []
-        seen_letters = set()
-        unmatched_letters = set()
-        for (idx, l) in enumerate(guess):
-            if l == solution[idx]:
-                match_at_loc.append((idx, l))
-            elif l in solution:
-                if l not in seen_letters:
-                    match_not_at_loc.append((idx, l))
-            else:
-                unmatched_letters.add(l)
-            seen_letters.add(l)
-
-        return (match_at_loc, match_not_at_loc, unmatched_letters)
-
-    def get_possible_words(self, possibilities, guess, match_at_loc, match_not_at_loc, unmatched):
-        new_possibilities = possibilities.copy()
-        new_possibilities.discard(guess)
-        for mal in match_at_loc:
-            new_possibilities.intersection_update(self.words_with_letter_at_location[mal])
-        for mnal in match_not_at_loc:
-            new_possibilities.intersection_update(self.words_with_letter[mnal[1]])
-        for mnal in match_not_at_loc:
-            new_possibilities.difference_update(self.words_with_letter_at_location[mnal])
-        for u in unmatched:
-            new_possibilities.difference_update(self.words_with_letter[u])
-        return new_possibilities
 
 class InformationDensityFinder:
     def __init__(self, solutions, guesses, matcher):
@@ -105,9 +70,9 @@ class InformationDensityFinder:
         scores = defaultdict(list)
         winnow_scores = defaultdict(list)
         guess_set = set(self.guesses)
-        for (idx, solution) in enumerate(self.solutions):
+        for (idx, solution) in enumerate(self.guesses):
             to = '\u001b[1A'
-            print("%sBuilding ranking (%d/%d)" % (to, idx, len(self.solutions)))
+            print("%sBuilding ranking (%d/%d)" % (to, idx, len(self.guesses)))
             for guess in self.guesses:
                 (match_at_loc, match_not_at_loc, unmatched) = Matcher.get_results(solution, guess)
                 score = len(match_at_loc) * LOCATION_MATCH_WEIGHT + len(match_not_at_loc)
@@ -122,12 +87,22 @@ class InformationDensityFinder:
         winnow_scores = sorted(winnow_scores, key=lambda item:item[1])
         return (scores, winnow_scores)
 
-class DensitySolver():
+class RandomSolver():
     def __init__(self, solution, guesses, densities, matcher):
         self.solution = solution
         self.guesses = set(guesses)
         self.densities = densities
         self.matcher = matcher
+
+        if self.densities:
+            self.dict_densities = dict(self.densities)
+
+        self.letter_frequencies = defaultdict(int)
+        for guess in guesses:
+            for l in guess:
+                self.letter_frequencies[l] += 1
+
+        self.max_letter_frequency = max(self.letter_frequencies.values())
 
     def get_candidate(self, depth, match_not_at_loc, match_at_loc):
         for idx in range(0, len(self.densities)):
@@ -151,18 +126,16 @@ class DensitySolver():
 
             if not USE_REAL_DICT:
                 print("trying %s" % candidate)
-            states.append(candidate)
             if candidate == self.solution:
-                if not USE_REAL_DICT:
-                    print("Found: %s" % states)
                 return i + 1
             (match_at_loc, match_not_at_loc, unmatched) = self.matcher.get_results(self.solution, candidate)
+            states.append(Matcher.escaped_word(candidate, match_at_loc, match_not_at_loc))
             self.guesses = self.matcher.get_possible_words(set(self.guesses), candidate, match_at_loc, match_not_at_loc, unmatched)
 
             if self.solution not in self.guesses:
-                print("This is weird, solution %s not in guesses")
+                print("This is weird, solution %s not in guesses (%s) (%s)" % (self.solution, states, self.guesses))
 
-        print(self.solution, states)
+        print(HIGHLIGHT + self.solution + RESET, ', '.join(states))
         return 6
 
 class RandomSolver(DensitySolver):
@@ -196,15 +169,47 @@ class SmartSolver(DensitySolver):
 
         local_matcher = Matcher(self.guesses)
         word_scores = defaultdict(int)
+
+        for (idx_solution, solution_word) in enumerate(self.guesses):
+            for (idx_guess, guess_word) in enumerate(self.guesses):
+                if idx_solution == idx_guess:
+                    continue
+                (match_not_at_loc, match_at_loc, unmatched) = local_matcher.get_results(solution_word, guess_word)
+                word_scores[guess_word] += len(local_matcher.get_possible_words(self.guesses, guess_word, match_at_loc, match_not_at_loc, unmatched))
+        """
+        words_scored_by_letter = set()
         for mnal in match_not_at_loc:
             for idx in range(0,5):
+                if idx == mnal[0]:
+                    continue
+
                 if (idx, mnal[1]) in local_matcher.words_with_letter_at_location:
                     for word in local_matcher.words_with_letter_at_location[(idx, mnal[1])]:
-                        word_scores[word] += 1
-                    break
+                        if (mnal[1], word) not in words_scored_by_letter:
+                            word_scores[word] += 1
+                            #words_scored_by_letter.add((mnal[1], word))
 
+        if not word_scores or len(set([item[1] for item in word_scores.items()])) == 1:
+            # figure out the words that have the most shared letters in the same place, that would give us new info
+            for word in self.guesses:
+                for (idx, l) in enumerate(word):
+                    if (idx, l) not in match_not_at_loc:
+                        if (idx, l) not in match_at_loc:
+                            word_scores[word] += len(local_matcher.words_with_letter_at_location[(idx, l)])
+        """
         if word_scores:
-            word_scores = list(reversed(sorted(word_scores.items(), key=lambda item: item[1])))
+            word_scores = sorted(word_scores.items(), key=lambda item: item[1])
+            prev_score = None
+            ties = defaultdict(int)
+            for (word, score) in word_scores:
+                if prev_score is not None and prev_score != score:
+                    break
+                prev_score = score
+                freq_score = 0
+                for l in word:
+                    freq_score += self.letter_frequencies[l]
+                ties[word] = freq_score
+            word_scores = list(reversed(sorted(ties.items(), key=lambda item: item[1])))
             return word_scores[0][0]
         else:
             return random.choice(list(self.guesses))
@@ -253,12 +258,12 @@ if __name__ == "__main__":
 
     print("Scanning %d solutions" % len(solutions))
 
-    smart_solver = SmartSolver("juice", guesses, scores[1], global_matcher)
+    smart_solver = SmartSolver("freer", guesses, scores[1], global_matcher)
     print(smart_solver.solve())
 
     results = defaultdict(list)
     for goal in solutions:
-
+        """
         match_density_solver = DensitySolver(goal, guesses, scores[0], global_matcher)
         results[0].append(match_density_solver.solve())
 
@@ -268,21 +273,22 @@ if __name__ == "__main__":
         random_solver = RandomSolver(goal, guesses, None, global_matcher)
         results[2].append(random_solver.solve())
 
+        """
         smart_solver = SmartSolver(goal, guesses, scores[0], global_matcher)
-        results[3].append(smart_solver.solve())
+        results['smart-match'].append(smart_solver.solve())
 
         smart_solver2 = SmartSolver(goal, guesses, scores[1], global_matcher)
-        results[4].append(smart_solver2.solve())
+        results['smart-winnow'].append(smart_solver2.solve())
 
-    for i in range(0, len(results)):
-        print(['match', 'winnow', 'random', 'smart', 'smart-2'][i])
-        print("  mean:   %f" % statistics.mean(results[i]))
-        print("  median: %d" % statistics.median(results[i]))
-        print("  mode:   %d" % statistics.mode(results[i]))
+    for (i, solver) in enumerate(results.keys()):
+        print(solver)
+        print("  mean:   %f" % statistics.mean(results[solver]))
+        print("  median: %d" % statistics.median(results[solver]))
+        print("  mode:   %d" % statistics.mode(results[solver]))
 
         # build a histogram
         histogram = defaultdict(int)
-        for j in results[i]:
+        for j in results[solver]:
             histogram[j] += 1
         m = max([item[1] for item in histogram.items()])
         for k,v in sorted(histogram.items(), key=lambda item: item[0]):
