@@ -17,7 +17,7 @@ class Solver:
         if not self.show_status:
             return
 
-        states.append(GREEN + solution + RESET)
+        states.append(GREEN + '\u2589' * 5 + RESET)
         print("\n" + ' ' * 10 + "%d/5" % len(states))
         print('\n'.join([' ' * 10 + state for state in states]))
 
@@ -40,7 +40,7 @@ class Solver:
 
             matcher = Matcher(current_guesses)
             (match_at_loc, match_not_at_loc, unmatched) = matcher.get_results(solution, candidate)
-            states.append(Matcher.escaped_word(candidate, match_at_loc, match_not_at_loc))
+            states.append(Matcher.obfuscated_escaped_word(candidate, match_at_loc, match_not_at_loc))
             current_guesses = matcher.get_possible_words(set(current_guesses), candidate, match_at_loc, match_not_at_loc, unmatched)
 
             if solution not in current_guesses:

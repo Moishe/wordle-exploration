@@ -9,11 +9,10 @@ import sys
 
 from collections import defaultdict
 
+from Corpus import Corpus
 import GuessRanker
 from RankMemoizer import RankMemoizer
 import Solver
-from Corpus import Corpus
-from Matcher import Matcher
 
 SOLUTION_WORDS = 3000
 GUESS_WORDS = 3000
@@ -32,18 +31,27 @@ if __name__ == "__main__":
         exit(1)
 
     args = argparse.ArgumentParser('wordle solver')
-    args.add_argument('--density_file', type=str, help='file containing density scores')
+    args.add_argument('--solution', type=str, help='If specified, solve for this solution')
     p = args.parse_args()
 
-    if USE_REAL_DICT:
+    if p.solution:
+        solutions = [p.solution]
+    elif USE_REAL_DICT:
         solutions = Corpus.get_real_solutions()
     else:
         solutions = random.choices(Corpus.get_top_n(SOLUTION_WORDS), k=SOLUTION_SAMPLE_SIZE)
 
-    if GUESS_WORDS == GUESS_SAMPLE_SIZE:
-        random_guesses = Corpus.get_top_n(GUESS_WORDS)
+    if p.solution:
+        if USE_REAL_DICT:
+            random_guesses = Corpus.get_real_solutions()
+        else:
+            random_guesses = random.choices(Corpus.get_top_n(GUESS_WORDS), k=GUESS_SAMPLE_SIZE)
     else:
-        random_guesses = random.choices(Corpus.get_top_n(GUESS_WORDS), k=GUESS_SAMPLE_SIZE)
+        if GUESS_WORDS == GUESS_SAMPLE_SIZE:
+            random_guesses = Corpus.get_top_n(GUESS_WORDS)
+        else:
+            random_guesses = random.choices(Corpus.get_top_n(GUESS_WORDS), k=GUESS_SAMPLE_SIZE)
+
     guesses = list(set(solutions).union(set(random_guesses)))
 
     print("Solution corpus size: %d\nGuess corpus size: %d" % (len(solutions), len(guesses)))
