@@ -49,46 +49,6 @@ def get_real_solutions():
 
     return words
 
-class InformationDensityFinder:
-    def __init__(self, solutions, guesses, matcher):
-        self.solutions = solutions
-        self.guesses = guesses
-        self.words_to_force = {}
-        self.words_to_ignore = set()
-        self.matcher = matcher
-
-    def load(self, filename):
-        f = open(filename)
-        data = json.load(f)
-        f.close()
-        return (data[0], data[1])
-
-    def save(self, scores, winnow_scores):
-        f = open('densities.json', 'w')
-        json.dump([scores, winnow_scores], f)
-        f.close()
-
-    def find_high_density_guesses(self):
-        scores = defaultdict(list)
-        winnow_scores = defaultdict(list)
-        guess_set = set(self.guesses)
-        for (idx, solution) in enumerate(self.guesses):
-            to = '\u001b[1A'
-            print("%sBuilding ranking (%d/%d)" % (to, idx, len(self.guesses)))
-            for guess in self.guesses:
-                (match_at_loc, match_not_at_loc, unmatched) = Matcher.get_results(solution, guess)
-                score = len(match_at_loc) * LOCATION_MATCH_WEIGHT + len(match_not_at_loc)
-                scores[guess].append(score)
-                new_possibilities = self.matcher.get_possible_words(guess_set, guess, match_at_loc, match_not_at_loc, unmatched)
-                winnow_scores[guess].append(len(new_possibilities))
-
-        scores = [(item[0], float(sum(item[1]))/float(len(item[1]))) for item in scores.items()]
-        scores = list(reversed(sorted(scores, key=lambda item:item[1])))
-
-        winnow_scores = [(item[0], float(sum(item[1]))/float(len(item[1]))) for item in winnow_scores.items()]
-        winnow_scores = sorted(winnow_scores, key=lambda item:item[1])
-        return (scores, winnow_scores)
-
 class DensitySolver():
     def __init__(self, solution, guesses, densities, matcher):
         self.solution = solution

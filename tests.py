@@ -1,5 +1,6 @@
 import unittest
 from Matcher import Matcher
+import GuessRanker
 
 DEFAULT_GUESSES = ['wooer', 'about', 'other', 'which', 'their', 'there', 'first', 'would', 'these', 'click']
 
@@ -30,14 +31,17 @@ class MatcherTests(unittest.TestCase):
     (match_at_loc, match_not_at_loc, unmatched_letters) = self.matcher.get_results('wooer', 'efete')
     self.assertEqual(match_not_at_loc, [(0, 'e')])
 
-    (match_at_loc, match_not_at_loc, unmatched_letters) = self.matcher.get_results('freer', 'efete')
-    print(match_at_loc, match_not_at_loc, unmatched_letters)
-    print('freer')
-    print(Matcher.escaped_word('efete', match_at_loc, match_not_at_loc))
+  def test_match_guess_ranker(self):
+    matcher = Matcher(DEFAULT_GUESSES)
+    match_guess_ranker = GuessRanker.GuessMatchRanker(DEFAULT_GUESSES, DEFAULT_GUESSES, matcher)
+    scores = match_guess_ranker.rank_guesses()
+    self.assertEqual(scores[0][0], 'their')
 
-    (match_at_loc, match_not_at_loc, unmatched_letters) = self.matcher.get_results('filmy', 'billy')
-    print(match_at_loc, match_not_at_loc, unmatched_letters)
-
+  def test_winnow_guess_ranker(self):
+    matcher = Matcher(DEFAULT_GUESSES)
+    winnow_guess_ranker = GuessRanker.GuessWinnowRanker(DEFAULT_GUESSES, DEFAULT_GUESSES, matcher)
+    scores = winnow_guess_ranker.rank_guesses()
+    self.assertEqual(scores[0][0], 'wooer')
 
 if __name__ == '__main__':
     unittest.main()    
