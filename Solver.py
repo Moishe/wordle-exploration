@@ -23,8 +23,7 @@ class Solver:
 
     def get_candidate(self, current_guesses):
         ranker = self.ranker_factory(current_guesses, current_guesses)
-        scores = ranker.rank_guesses()
-        return scores[0][0]
+        return ranker.get_best_guess()
 
     def solve(self, solution):
         states = []

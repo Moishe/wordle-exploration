@@ -39,18 +39,17 @@ class MatcherTests(unittest.TestCase):
 
   def test_match_guess_ranker(self):
     match_guess_ranker = GuessRanker.GuessMatchRanker(self.guesses, self.guesses)
-    scores = match_guess_ranker.rank_guesses()
-    self.assertEqual(scores[0][0], 'store')
+    best_guess = match_guess_ranker.get_best_guess()
+    self.assertEqual(best_guess, 'store')
 
   def test_winnow_guess_ranker(self):
     winnow_guess_ranker = GuessRanker.GuessWinnowRanker(self.guesses, self.guesses)
-    scores = winnow_guess_ranker.rank_guesses()
-    self.assertEqual(scores[0][0], 'store')
+    best_guess = winnow_guess_ranker.get_best_guess()
+    self.assertEqual(best_guess, 'store')
 
   def test_random_guess_ranker(self):
     random_guess_ranker = GuessRanker.GuessRandomRanker(self.guesses, self.guesses)
-    scores = random_guess_ranker.rank_guesses()
-    self.assertEqual(len(self.guesses), len(scores))
+    random_guess_ranker.get_best_guess()
 
   def test_solvers(self):
     factories = [GuessRanker.GuessRandomRanker.factory, GuessRanker.GuessMatchRanker.factory, GuessRanker.GuessWinnowRanker.factory]
@@ -61,14 +60,13 @@ class MatcherTests(unittest.TestCase):
 
   def test_memoizer(self):
     random_guess_ranker = GuessRanker.GuessRandomRanker(self.guesses, self.guesses)
-    scores = random_guess_ranker.rank_guesses()
+    best_guess = random_guess_ranker.get_best_guess()
     
     memoizer = RankMemoizer.RankMemoizer(random_guess_ranker.get_descriptor)
-    memoizer.memoize(self.guesses, scores)
+    memoizer.memoize(self.guesses, best_guess)
 
-    memoized_scores = memoizer.maybe_get_memo(self.guesses)
-    self.assertEqual(memoized_scores, scores)
-
+    memoized_best_guess = memoizer.maybe_get_memo(self.guesses)
+    self.assertEqual(best_guess, memoized_best_guess)
 
 if __name__ == '__main__':
     unittest.main()    

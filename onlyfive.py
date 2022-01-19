@@ -54,7 +54,7 @@ if __name__ == "__main__":
     results = defaultdict(list)
     for (idx, factory) in enumerate(factories):
         solver = Solver.Solver(guesses, factory, True)
-        for solution in solutions[:100]:
+        for solution in solutions:
             steps = solver.solve(solution)
             results[idx].append(steps)
 

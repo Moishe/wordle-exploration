@@ -17,10 +17,10 @@ class GuessRanker:
         self.matcher = Matcher(guesses)
         self.rank_memoizer = RankMemoizer(self.get_descriptor())
 
-    def rank_guesses(self):
-        scores = self.rank_memoizer.maybe_get_memo(self.guesses)
-        if scores:
-            return scores
+    def get_best_guess(self):
+        best_guess = self.rank_memoizer.maybe_get_memo(self.guesses)
+        if best_guess:
+            return best_guess
 
         print()
         scores = defaultdict(list)
@@ -31,8 +31,9 @@ class GuessRanker:
                 scores[guess].append(self.score_guess(solution, guess))
 
         sorted_scores = self.sort_scores(scores)
-        self.rank_memoizer.memoize(self.guesses, sorted_scores)
-        return sorted_scores
+        best_guess = sorted_scores[0][0]
+        self.rank_memoizer.memoize(self.guesses, best_guess)
+        return best_guess
 
     def get_descriptor(self):
         return 'base'
