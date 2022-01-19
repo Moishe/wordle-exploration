@@ -7,11 +7,13 @@ from Matcher import Matcher
 LOCATION_MATCH_WEIGHT = 2
 
 class GuessRanker:
-    def __init__(self, solutions, guesses, matcher):
+    to = '\u001b[1A'
+
+    def __init__(self, solutions, guesses):
         self.solutions = solutions
         self.guesses = guesses
         self.guess_set = set(self.guesses)
-        self.matcher = matcher
+        self.matcher = Matcher(guesses)
 
     def load(self, filename):
         f = open(filename)
@@ -19,16 +21,17 @@ class GuessRanker:
         f.close()
         return data
 
-    def save(self, scores, winnow_scores):
+    def save(self, scores):
         f = open('guess-ranks-%s.json' % self.get_file_suffix(), 'w')
         json.dump([scores], f)
         f.close()
 
     def rank_guesses(self):
+        print()
         scores = defaultdict(list)
         for (idx, solution) in enumerate(self.guesses):
-            to = '\u001b[1A'
-            print("%sBuilding ranking (%d/%d)" % (to, idx, len(self.guesses)))
+            print("%sBuilding ranking (%d/%d)" % (self.to, idx, len(self.guesses)))
+
             for guess in self.guesses:
                 scores[guess].append(self.score_guess(solution, guess))
 

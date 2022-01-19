@@ -1,6 +1,8 @@
 import unittest
-from Matcher import Matcher
 import GuessRanker
+
+from Corpus import Corpus
+from Matcher import Matcher
 
 DEFAULT_GUESSES = ['wooer', 'about', 'other', 'which', 'their', 'there', 'first', 'would', 'these', 'click']
 
@@ -20,28 +22,27 @@ def get_top_n(n):
 class MatcherTests(unittest.TestCase):
 
   def setUp(self):
-    self.matcher = Matcher(DEFAULT_GUESSES)
+    self.guesses = Corpus.get_top_n(100)
 
   def test_getresults(self):
-    (match_at_loc, match_not_at_loc, unmatched_letters) = self.matcher.get_results('wooer', 'click')
+    matcher = Matcher(DEFAULT_GUESSES)
+    (match_at_loc, match_not_at_loc, unmatched_letters) = matcher.get_results('wooer', 'click')
     self.assertEqual(match_at_loc, [])
     self.assertEqual(match_not_at_loc, [])
     self.assertEqual(unmatched_letters, set([l for l in 'click']))
 
-    (match_at_loc, match_not_at_loc, unmatched_letters) = self.matcher.get_results('wooer', 'efete')
+    (match_at_loc, match_not_at_loc, unmatched_letters) = matcher.get_results('wooer', 'efete')
     self.assertEqual(match_not_at_loc, [(0, 'e')])
 
   def test_match_guess_ranker(self):
-    matcher = Matcher(DEFAULT_GUESSES)
-    match_guess_ranker = GuessRanker.GuessMatchRanker(DEFAULT_GUESSES, DEFAULT_GUESSES, matcher)
+    match_guess_ranker = GuessRanker.GuessMatchRanker(self.guesses, self.guesses)
     scores = match_guess_ranker.rank_guesses()
-    self.assertEqual(scores[0][0], 'their')
+    self.assertEqual(scores[0][0], 'store')
 
   def test_winnow_guess_ranker(self):
-    matcher = Matcher(DEFAULT_GUESSES)
-    winnow_guess_ranker = GuessRanker.GuessWinnowRanker(DEFAULT_GUESSES, DEFAULT_GUESSES, matcher)
+    winnow_guess_ranker = GuessRanker.GuessWinnowRanker(self.guesses, self.guesses)
     scores = winnow_guess_ranker.rank_guesses()
-    self.assertEqual(scores[0][0], 'wooer')
+    self.assertEqual(scores[0][0], 'store')
 
 if __name__ == '__main__':
     unittest.main()    

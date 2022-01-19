@@ -47,7 +47,6 @@ class Matcher:
 
     def get_possible_words(self, possibilities, guess, match_at_loc, match_not_at_loc, unmatched):
         new_possibilities = possibilities.copy()
-        new_possibilities.discard(guess)
         for mal in match_at_loc:
             new_possibilities.intersection_update(self.words_with_letter_at_location[mal])
         for mnal in match_not_at_loc:
