@@ -1,8 +1,9 @@
-import json
+import random
 
 from collections import defaultdict
 
 from Matcher import Matcher
+from RankMemoizer import RankMemoizer
 
 LOCATION_MATCH_WEIGHT = 2
 
@@ -14,19 +15,13 @@ class GuessRanker:
         self.guesses = guesses
         self.guess_set = set(self.guesses)
         self.matcher = Matcher(guesses)
-
-    def load(self, filename):
-        f = open(filename)
-        data = json.load(f)
-        f.close()
-        return data
-
-    def save(self, scores):
-        f = open('guess-ranks-%s.json' % self.get_file_suffix(), 'w')
-        json.dump([scores], f)
-        f.close()
+        self.rank_memoizer = RankMemoizer(self.get_descriptor())
 
     def rank_guesses(self):
+        scores = self.rank_memoizer.maybe_get_memo(self.guesses)
+        if scores:
+            return scores
+
         print()
         scores = defaultdict(list)
         for (idx, solution) in enumerate(self.guesses):
@@ -35,10 +30,19 @@ class GuessRanker:
             for guess in self.guesses:
                 scores[guess].append(self.score_guess(solution, guess))
 
-        return self.sort_scores(scores)
+        sorted_scores = self.sort_scores(scores)
+        self.rank_memoizer.memoize(self.guesses, sorted_scores)
+        return sorted_scores
+
+    def get_descriptor(self):
+        return 'base'
 
 class GuessMatchRanker(GuessRanker):
-    def get_file_suffix():
+    @staticmethod
+    def factory(solutions, guesses):
+        return GuessMatchRanker(solutions, guesses)
+
+    def get_descriptor(self):
         return 'match'
 
     def score_guess(self, solution, guess):
@@ -51,7 +55,11 @@ class GuessMatchRanker(GuessRanker):
 
 
 class GuessWinnowRanker(GuessRanker):
-    def get_file_suffix():
+    @staticmethod
+    def factory(solutions, guesses):
+        return GuessWinnowRanker(solutions, guesses)
+
+    def get_descriptor(self):
         return 'winnow'
 
     def score_guess(self, solution, guess):
@@ -62,3 +70,19 @@ class GuessWinnowRanker(GuessRanker):
     def sort_scores(self, scores):
         winnow_scores = [(item[0], float(sum(item[1]))/float(len(item[1]))) for item in scores.items()]
         return sorted(winnow_scores, key=lambda item:item[1])
+
+class GuessRandomRanker(GuessRanker):
+    @staticmethod
+    def factory(solutions, guesses):
+        return GuessRandomRanker(solutions, guesses)
+
+    def get_descriptor(self):
+        return 'random'
+
+    def score_guess(self, solution, guess):
+        return 1
+
+    def sort_scores(self, scores):
+        scores = [(item[0], 1) for item in scores.items()]
+        random.shuffle(scores)
+        return scores
