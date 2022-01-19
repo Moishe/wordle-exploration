@@ -1,5 +1,10 @@
 from collections import defaultdict
 
+GREEN = '\u001b[32m'
+YELLOW = '\u001b[33m'
+RESET = '\u001b[0m'
+BLOCK = '\u2589'
+
 class Matcher:
     def __init__(self, guesses):
         self.words_with_letter = defaultdict(set)
@@ -56,14 +61,23 @@ class Matcher:
     @staticmethod
     def escaped_word(word, match_at_loc, match_not_at_loc):
         word_with_highlights = ''
-        green = '\u001b[32m'
-        yellow = '\u001b[33m'
-        reset = '\u001b[0m'
         for (idx, l) in enumerate(word):
             if (idx, l) in match_at_loc:
-                word_with_highlights += green + l + reset
+                word_with_highlights += GREEN + l + RESET
             elif (idx, l) in match_not_at_loc:
-                word_with_highlights += yellow + l + reset
+                word_with_highlights += YELLOW + l + RESET
             else:
                 word_with_highlights += l
+        return word_with_highlights
+
+    @staticmethod
+    def obfuscated_escaped_word(word, match_at_loc, match_not_at_loc):
+        word_with_highlights = ''
+        for (idx, l) in enumerate(word):
+            if (idx, l) in match_at_loc:
+                word_with_highlights += GREEN + BLOCK + RESET
+            elif (idx, l) in match_not_at_loc:
+                word_with_highlights += YELLOW + BLOCK + RESET
+            else:
+                word_with_highlights += BLOCK
         return word_with_highlights

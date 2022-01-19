@@ -23,7 +23,9 @@ LOCATION_MATCH_WEIGHT = 2
 MAX_CANDIDATE_GUESSES = 20
 
 HIGHLIGHT = '\u001b[37m'
+RED = '\u001b[31m'
 RESET = '\u001b[0m'
+GREEN = '\u001b[32m'
 
 def get_top_n(n):
     # this list is already sorted, so we can optimize a bit!
@@ -87,7 +89,7 @@ class InformationDensityFinder:
         winnow_scores = sorted(winnow_scores, key=lambda item:item[1])
         return (scores, winnow_scores)
 
-class RandomSolver():
+class DensitySolver():
     def __init__(self, solution, guesses, densities, matcher):
         self.solution = solution
         self.guesses = set(guesses)
@@ -127,15 +129,19 @@ class RandomSolver():
             if not USE_REAL_DICT:
                 print("trying %s" % candidate)
             if candidate == self.solution:
+                states.append(GREEN + '\u2589' * 5 + RESET)
+                print("\n          %d/5" % len(states))
+                print('\n'.join([' ' * 10 + state for state in states]))
                 return i + 1
             (match_at_loc, match_not_at_loc, unmatched) = self.matcher.get_results(self.solution, candidate)
-            states.append(Matcher.escaped_word(candidate, match_at_loc, match_not_at_loc))
+            states.append(Matcher.obfuscated_escaped_word(candidate, match_at_loc, match_not_at_loc))
             self.guesses = self.matcher.get_possible_words(set(self.guesses), candidate, match_at_loc, match_not_at_loc, unmatched)
 
             if self.solution not in self.guesses:
                 print("This is weird, solution %s not in guesses (%s) (%s)" % (self.solution, states, self.guesses))
 
-        print(HIGHLIGHT + self.solution + RESET, ', '.join(states))
+        print('\n          X/5')
+        print('\n'.join([' ' * 10 + state for state in states]))
         return 6
 
 class RandomSolver(DensitySolver):
@@ -176,27 +182,7 @@ class SmartSolver(DensitySolver):
                     continue
                 (match_not_at_loc, match_at_loc, unmatched) = local_matcher.get_results(solution_word, guess_word)
                 word_scores[guess_word] += len(local_matcher.get_possible_words(self.guesses, guess_word, match_at_loc, match_not_at_loc, unmatched))
-        """
-        words_scored_by_letter = set()
-        for mnal in match_not_at_loc:
-            for idx in range(0,5):
-                if idx == mnal[0]:
-                    continue
 
-                if (idx, mnal[1]) in local_matcher.words_with_letter_at_location:
-                    for word in local_matcher.words_with_letter_at_location[(idx, mnal[1])]:
-                        if (mnal[1], word) not in words_scored_by_letter:
-                            word_scores[word] += 1
-                            #words_scored_by_letter.add((mnal[1], word))
-
-        if not word_scores or len(set([item[1] for item in word_scores.items()])) == 1:
-            # figure out the words that have the most shared letters in the same place, that would give us new info
-            for word in self.guesses:
-                for (idx, l) in enumerate(word):
-                    if (idx, l) not in match_not_at_loc:
-                        if (idx, l) not in match_at_loc:
-                            word_scores[word] += len(local_matcher.words_with_letter_at_location[(idx, l)])
-        """
         if word_scores:
             word_scores = sorted(word_scores.items(), key=lambda item: item[1])
             prev_score = None
@@ -205,11 +191,9 @@ class SmartSolver(DensitySolver):
                 if prev_score is not None and prev_score != score:
                     break
                 prev_score = score
-                freq_score = 0
-                for l in word:
-                    freq_score += self.letter_frequencies[l]
-                ties[word] = freq_score
-            word_scores = list(reversed(sorted(ties.items(), key=lambda item: item[1])))
+                ties[word] = self.dict_densities[word]
+
+            word_scores = sorted(ties.items(), key=lambda item: item[1])
             return word_scores[0][0]
         else:
             return random.choice(list(self.guesses))
