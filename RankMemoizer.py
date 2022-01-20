@@ -40,4 +40,10 @@ class RankMemoizer:
         global memos
         if exists('memos.json'):
             f = open('memos.json')
-            memos = json.load(f)
+            memos = defaultdict(dict, json.load(f))
+
+    @staticmethod
+    def discard(key):
+        memos[key] = {}
+
+

@@ -32,6 +32,7 @@ if __name__ == "__main__":
 
     args = argparse.ArgumentParser('wordle solver')
     args.add_argument('--solution', type=str, help='If specified, solve for this solution')
+    args.add_argument('--discardmemo', type=str, help='If specified, discard memoization of this descriptor')
     p = args.parse_args()
 
     if p.solution:
@@ -58,7 +59,15 @@ if __name__ == "__main__":
 
     print("Running solvers")
     RankMemoizer.load()
-    factories = [GuessRanker.GuessRandomRanker.factory, GuessRanker.GuessMatchRanker.factory, GuessRanker.GuessWinnowRanker.factory]
+    if p.discardmemo:
+        RankMemoizer.discard(p.discardmemo)
+
+    factories = [
+        GuessRanker.GuessRandomRanker.factory, 
+        GuessRanker.GuessMatchRanker.factory, 
+        GuessRanker.GuessWinnowRanker.factory,
+        GuessRanker.GuessFrequencyRanker.factory
+    ]
     results = defaultdict(list)
     for (idx, factory) in enumerate(factories):
         solver = Solver.Solver(guesses, factory, True)

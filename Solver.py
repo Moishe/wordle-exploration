@@ -23,7 +23,7 @@ class Solver:
         print('\n'.join([' ' * 10 + state for state in states]))
 
     def get_candidate(self, current_guesses):
-        ranker = self.ranker_factory(current_guesses, current_guesses)
+        ranker = self.ranker_factory(current_guesses)
         return ranker.get_best_guess()
 
     def solve(self, solution):
