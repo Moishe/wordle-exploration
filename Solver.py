@@ -14,6 +14,7 @@ class Solver:
         self.show_status = show_status
 
     def print_solution(self, states, solution):
+        return
         if not self.show_status:
             return
 
@@ -27,6 +28,7 @@ class Solver:
 
     def solve(self, solution):
         states = []
+        unobfuscated_states = []
         current_guesses = self.guesses.copy()
         for i in range(0,5):
             candidate = self.get_candidate(current_guesses)
@@ -42,12 +44,14 @@ class Solver:
             (match_at_loc, match_not_at_loc, unmatched) = matcher.get_results(solution, candidate)
             states.append(Matcher.obfuscated_escaped_word(candidate, match_at_loc, match_not_at_loc))
             current_guesses = matcher.get_possible_words(set(current_guesses), candidate, match_at_loc, match_not_at_loc, unmatched)
+            unobfuscated_states.append("%s (%d)" % (candidate, len(current_guesses)))
 
             if solution not in current_guesses:
                 print("This is weird, solution %s not in guesses (%s) (%s)" % (solution, current_guesses))
                 break
 
-        print('\n          X/5')
-        print('\n'.join([' ' * 10 + state for state in states]))
+        #print('\n          X/5')
+        #print('\n'.join([' ' * 10 + state for state in states]))
+        print(solution, ','.join(unobfuscated_states))
         return 6
 

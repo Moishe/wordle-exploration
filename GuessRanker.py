@@ -1,3 +1,4 @@
+from hashlib import new
 import random
 
 from collections import defaultdict
@@ -25,7 +26,7 @@ class GuessRanker:
         print()
         scores = defaultdict(list)
         for (idx, solution) in enumerate(self.guesses):
-            print("%sBuilding ranking (%d/%d)" % (self.to, idx, len(self.guesses)))
+            print("%sBuilding ranking (%d/%d)" % (self.to, idx + 1, len(self.guesses)))
 
             for guess in self.guesses:
                 scores[guess].append(self.score_guess(solution, guess))

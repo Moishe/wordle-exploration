@@ -55,6 +55,12 @@ class Matcher:
             new_possibilities.difference_update(self.words_with_letter_at_location[mnal])
         for u in unmatched:
             new_possibilities.difference_update(self.words_with_letter[u])
+
+        # it's possible that the guess was not excluded from the list of possible words,
+        # in the case of multiple letter being guessed but not matched, eg. if the
+        # guess is "abase" and the solution is "abuse"
+        new_possibilities.discard(guess)
+
         return new_possibilities
 
     @staticmethod
