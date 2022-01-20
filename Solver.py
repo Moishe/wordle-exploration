@@ -30,7 +30,7 @@ class Solver:
         states = []
         unobfuscated_states = []
         current_guesses = self.guesses.copy()
-        for i in range(0,5):
+        for i in range(0,6):
             candidate = self.get_candidate(current_guesses)
             if not candidate:
                 print("Couldn't find candidate")
@@ -53,5 +53,5 @@ class Solver:
         #print('\n          X/5')
         #print('\n'.join([' ' * 10 + state for state in states]))
         print(solution, ','.join(unobfuscated_states))
-        return 6
+        return 7
 

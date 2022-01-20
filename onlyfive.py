@@ -89,5 +89,7 @@ if __name__ == "__main__":
         m = max([item[1] for item in histogram.items()])
         for k,v in sorted(histogram.items(), key=lambda item: item[0]):
             count = int(float(v)/float(m) * 80)
-            print("%d (%s): %s" % (k, str(v).ljust(4), '#' * count))
+            if k == 7:
+                k = 'X'
+            print("%s (%s): %s" % (str(k), str(v).ljust(4), '#' * count))
         print()
