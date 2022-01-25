@@ -9,7 +9,8 @@ class RankMemoizer:
     def __init__(self, rank_descriptor):
         self.rank_descriptor = rank_descriptor
 
-    def hash_guesses(self, guesses):
+    @staticmethod
+    def hash_guesses(guesses):
         m = hashlib.sha256()
         guesses = sorted(guesses)
         for guess in guesses:
@@ -18,7 +19,7 @@ class RankMemoizer:
 
     def memoize(self, guesses, scores):
         global memos
-        hash = self.hash_guesses(guesses)
+        hash = RankMemoizer.hash_guesses(guesses)
         memos[self.rank_descriptor][hash] = scores
 
     def maybe_get_memo(self, guesses):

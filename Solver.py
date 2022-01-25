@@ -14,13 +14,12 @@ class Solver:
         self.show_status = show_status
 
     def print_solution(self, states, solution):
-        return
         if not self.show_status:
             return
 
-        states.append(GREEN + '\u2589' * 5 + RESET)
-        print("\n" + ' ' * 10 + "%d/5" % len(states))
-        print('\n'.join([' ' * 10 + state for state in states]))
+        states.append('🟩' * 5 + RESET)
+        print("%s: %d/6" % (self.ranker_factory([]).get_descriptor(), len(states)))
+        print('\n'.join(states))
 
     def get_candidate(self, current_guesses):
         ranker = self.ranker_factory(current_guesses)

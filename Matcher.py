@@ -5,6 +5,13 @@ YELLOW = '\u001b[33m'
 RESET = '\u001b[0m'
 BLOCK = '\u2589'
 
+BLOCKS = {
+    'green': '🟩', 
+    'yellow': '🟨', 
+    'gray': '⬜'
+}
+
+
 class Matcher:
     def __init__(self, guesses):
         self.words_with_letter = defaultdict(set)
@@ -80,9 +87,9 @@ class Matcher:
         word_with_highlights = ''
         for (idx, l) in enumerate(word):
             if (idx, l) in match_at_loc:
-                word_with_highlights += GREEN + BLOCK + RESET
+                word_with_highlights += BLOCKS['green']
             elif (idx, l) in match_not_at_loc:
-                word_with_highlights += YELLOW + BLOCK + RESET
+                word_with_highlights += BLOCKS['yellow']
             else:
-                word_with_highlights += BLOCK
+                word_with_highlights += BLOCKS['gray']
         return word_with_highlights

@@ -8,6 +8,8 @@ from RankMemoizer import RankMemoizer
 
 LOCATION_MATCH_WEIGHT = 2
 
+seen_possible_words = set()
+
 class GuessRanker:
     to = '\u001b[1A'
 
@@ -18,6 +20,9 @@ class GuessRanker:
         self.rank_memoizer = RankMemoizer(self.get_descriptor())
     
     def get_best_guess(self):
+        if len(self.guesses) == 1:
+            return list(self.guesses)[0]
+
         best_guess = self.rank_memoizer.maybe_get_memo(self.guesses)
         if best_guess:
             return best_guess
