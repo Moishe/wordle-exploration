@@ -10,6 +10,10 @@ def is_possible(word, possible_word):
 
 def get_possibilities(guesses):
     solutions = Corpus.Corpus.get_real_solutions()
+    if 'panda' in solutions:
+        print("panda is in solutions")
+    else:
+        print("panda is not in solutions")
     matcher = Matcher.Matcher(solutions)
 
     possible_words = set(Corpus.Corpus.get_real_solutions())
@@ -34,19 +38,34 @@ def get_possibilities(guesses):
         set(aggregate_guess["nmal"]),
         aggregate_guess["unmatched"],
     )
+    print(possible_words)
 
-    ranked_guesses = defaultdict(int)
-    # See which of the remaining words eliminates the most words
-    for word in solutions:
-        for possible_word in possible_words:
-            if is_possible(word, possible_word):
-                ranked_guesses[word] += 1
+    possibilities = defaultdict(set)
+    full_eliminations = defaultdict(set)
+    for possible_word in possible_words:
+        impossible_words = set(possible_words)
+        for guess in ['panda']: #possible_words:
+            result = matcher.get_results(possible_word, guess)
+            mal = set(result[0]).union(aggregate_guess["mal"])
+            nmal = set(result[1]).union(aggregate_guess["nmal"])
+            unmatched = result[2].union(aggregate_guess["unmatched"])
+            results = matcher.get_possible_words(
+                possible_words,
+                guess,
+                mal,
+                nmal,
+                unmatched,
+            )
+            print(possible_word, guess, mal, nmal, unmatched, results)
+            if len(results) == 1:
+                full_eliminations[guess].add(possible_word)
 
-    print(possible_words, ranked_guesses['pizza'])
-    ranked_guesses = sorted(ranked_guesses.items(), key=lambda x: x[1])
-    #print(ranked_guesses)
-
-
+    print(full_eliminations)
+    """
+    possibilities = list(filter(lambda x: len(x[1]) > 0, possibilities.items()))
+    possibilities = sorted(possibilities, key=lambda x: len(x[1]))
+    print(possibilities[:10])
+    """
 
 if __name__ == "__main__":
     guesses = [
@@ -55,5 +74,3 @@ if __name__ == "__main__":
     ]
 
     possibilities = get_possibilities(guesses)
-
-    print(possibilities)
