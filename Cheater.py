@@ -1,76 +1,51 @@
+import json
 import Corpus
-import Matcher
-from collections import defaultdict
+from collections import Counter
 
-def is_possible(word, possible_word):
-    for (idx, letter) in enumerate(word):
-        if letter == possible_word[idx]:
-            return True
-    return False
+def find_all_matches(word, c):
+    matches = []
+    for i in range(len(word)):
+        if word[i] == c:
+            matches.append(i)
+    return matches
+
+def is_possible(word, unmatched, match_at_loc, match_at_noloc):
+    if set(word).intersection(unmatched):
+        return False
+
+    for m in match_at_loc:
+        if word[m[1]] != m[0]:
+            return False
+
+    for nmal in match_at_noloc:
+        indices = find_all_matches(word, nmal[0])
+        if indices == [] or nmal[1] in indices:
+            return False
+
+    return True
 
 def get_possibilities(guesses):
     solutions = Corpus.Corpus.get_real_solutions()
-    if 'panda' in solutions:
-        print("panda is in solutions")
-    else:
-        print("panda is not in solutions")
-    matcher = Matcher.Matcher(solutions)
 
-    possible_words = set(Corpus.Corpus.get_real_solutions())
-    aggregate_guess = {
-        "mal": set(),
-        "nmal": set(),
-        "unmatched": set(),
-    }
-    for guess in guesses:
-        aggregate_guess = {
-            "mal": aggregate_guess["mal"].union(set(guess["mal"])),
-            "nmal": aggregate_guess["nmal"].union(set(guess["nmal"])),
-            "unmatched": aggregate_guess["unmatched"].union(set(guess["unmatched"])),
-        }
+    unmatched = set(guesses["unmatched"])
 
-    print(aggregate_guess)
+    possibilities = []
+    for potential in solutions:
+        if is_possible(potential, unmatched, guesses["mal"], guesses["nmal"]):
+            possibilities.append(potential)
 
-    possible_words = matcher.get_possible_words(
-        possible_words,
-        None,
-        set(aggregate_guess["mal"]),
-        set(aggregate_guess["nmal"]),
-        aggregate_guess["unmatched"],
-    )
-    print(possible_words)
+    return possibilities
 
-    possibilities = defaultdict(set)
-    full_eliminations = defaultdict(set)
-    for possible_word in possible_words:
-        impossible_words = set(possible_words)
-        for guess in ['panda']: #possible_words:
-            result = matcher.get_results(possible_word, guess)
-            mal = set(result[0]).union(aggregate_guess["mal"])
-            nmal = set(result[1]).union(aggregate_guess["nmal"])
-            unmatched = result[2].union(aggregate_guess["unmatched"])
-            results = matcher.get_possible_words(
-                possible_words,
-                guess,
-                mal,
-                nmal,
-                unmatched,
-            )
-            print(possible_word, guess, mal, nmal, unmatched, results)
-            if len(results) == 1:
-                full_eliminations[guess].add(possible_word)
-
-    print(full_eliminations)
-    """
-    possibilities = list(filter(lambda x: len(x[1]) > 0, possibilities.items()))
-    possibilities = sorted(possibilities, key=lambda x: len(x[1]))
-    print(possibilities[:10])
-    """
 
 if __name__ == "__main__":
-    guesses = [
-        {"nmal": [(2, "a")], "mal": [], "unmatched": "slte"},
-        {"nmal": [(3, "i")], "mal": [], "unmatched": "chor"},
-    ]
+    guesses = {
+        "mal": [("r", 1), ("i", 2)],
+        "nmal": [("e", 4)],
+        "unmatched": "slatpon"
+    }
+    #guesses = {"mal": [], "nmal": [("p", 4), ("r", 3), ("f", 3)], "unmatched": ""}
 
     possibilities = get_possibilities(guesses)
+    c = Counter([c for word in possibilities for c in word])
+    print(possibilities)
+    print(json.dumps(sorted(c.items(), key=lambda x: x[1]), indent=2))
