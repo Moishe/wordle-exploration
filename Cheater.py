@@ -1,6 +1,8 @@
-import json
-import Corpus
+from Corpus import Corpus
 from collections import Counter
+
+from guesser import EntropyCalculator
+
 
 def find_all_matches(word, c):
     matches = []
@@ -8,6 +10,7 @@ def find_all_matches(word, c):
         if word[i] == c:
             matches.append(i)
     return matches
+
 
 def is_possible(word, unmatched, match_at_loc, match_at_noloc):
     if set(word).intersection(unmatched):
@@ -24,8 +27,9 @@ def is_possible(word, unmatched, match_at_loc, match_at_noloc):
 
     return True
 
+
 def get_possibilities(guesses):
-    solutions = Corpus.Corpus.get_real_solutions()
+    solutions = Corpus.get_real_solutions()
 
     unmatched = set(guesses["unmatched"])
 
@@ -39,13 +43,18 @@ def get_possibilities(guesses):
 
 if __name__ == "__main__":
     guesses = {
-        "mal": [("r", 1), ("i", 2)],
-        "nmal": [("e", 4)],
-        "unmatched": "slatpon"
+        "mal": [("l", 1), ("a", 2)],
+        "nmal": [("t", 3)],
+        "unmatched": "se",
     }
-    #guesses = {"mal": [], "nmal": [("p", 4), ("r", 3), ("f", 3)], "unmatched": ""}
 
     possibilities = get_possibilities(guesses)
-    c = Counter([c for word in possibilities for c in word])
     print(possibilities)
-    print(json.dumps(sorted(c.items(), key=lambda x: x[1]), indent=2))
+
+    c = Counter([c for word in possibilities for c in word])
+    # Corpus.get_real_solutions())
+    ec = EntropyCalculator(possibilities, possibilities)
+    ec.eliminates()
+
+    ec = EntropyCalculator(possibilities, Corpus.get_real_solutions())
+    ec.eliminates()
